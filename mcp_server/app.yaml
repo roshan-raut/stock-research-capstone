@@ -1,0 +1,37 @@
+command:
+  - "python"
+  - "research_mcp_server.py"
+
+env:
+  - name: LAKEBASE_SECRET_SCOPE
+    value: "database"
+  - name: LAKEBASE_SECRET_KEY
+    value: "lakebase-url"
+  - name: MASSIVE_SECRET_SCOPE
+    value: "massive"
+  - name: MASSIVE_SECRET_KEY
+    value: "api-key"
+  - name: MASSIVE_API_BASE_URL
+    value: "https://api.massive.com"
+  - name: WATCHLIST_TABLE_NAME
+    value: "watchlist"
+  - name: COMPANIES_TABLE_NAME
+    value: "companies"
+  - name: PRICE_SNAPSHOTS_TABLE_NAME
+    value: "price_snapshots"
+  - name: NEWS_TABLE_NAME
+    value: "ticker_news_documents"
+  - name: EMBEDDINGS_TABLE_NAME
+    value: "ticker_news_embeddings"
+  - name: CHUNK_EMBEDDINGS_TABLE_NAME
+    value: "ticker_news_chunk_embeddings"
+  - name: RESEARCH_NOTES_TABLE_NAME
+    value: "research_notes"
+  - name: ANALYSIS_REPORTS_TABLE_NAME
+    value: "analysis_reports"
+  - name: USER_CHECKPOINTS_TABLE_NAME
+    value: "user_checkpoints"
+  - name: EMBEDDING_MODEL
+    value: "sentence-transformers/all-MiniLM-L6-v2"
+  - name: NOTABLE_MOVE_THRESHOLD_PCT
+    value: "3.0"
