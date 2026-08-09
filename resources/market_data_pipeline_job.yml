@@ -1,0 +1,41 @@
+resources:
+  jobs:
+    market_data_pipeline_job:
+      name: market_data_pipeline_job
+      # PAUSED to start - flip to UNPAUSED once you've done a manual test run.
+      trigger:
+        pause_status: PAUSED
+        periodic:
+          interval: 1
+          unit: DAYS
+      email_notifications:
+        on_failure:
+          - your-email@example.com
+      tasks:
+        - task_key: run_market_data_pipeline
+          notebook_task:
+            notebook_path: ../notebooks/market_data_pipeline.py
+            base_parameters:
+              watchlist_table_name: watchlist
+              companies_table_name: companies
+              price_snapshots_table_name: price_snapshots
+              news_table_name: ticker_news_documents
+              embeddings_table_name: ticker_news_embeddings
+              chunk_embeddings_table_name: ticker_news_chunk_embeddings
+              embedding_model: sentence-transformers/all-MiniLM-L6-v2
+              lakebase_secret_scope: database
+              lakebase_secret_key: lakebase-url
+              massive_secret_scope: massive
+              massive_secret_key: api-key
+              massive_api_base_url: https://api.massive.com
+              news_fetch_limit: "20"
+              max_requests_per_minute: "5"
+              company_refresh_days: "7"
+              chunk_size: "800"
+              chunk_overlap: "100"
+          # Serverless job compute - no cluster config needed on Free Edition.
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
