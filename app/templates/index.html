@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Research Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0b1420;
+    --ink-panel: #101c2c;
+    --hairline: #24344a;
+    --amber: #d9a441;
+    --amber-dim: #8a6a2f;
+    --paper: #ece4d3;
+    --muted: #7c8798;
+    --up: #5fae7f;
+    --down: #c1544a;
+    --radius: 3px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Inter', sans-serif;
+    height: 100%;
+  }
+  ::selection { background: var(--amber); color: var(--ink); }
+
+  h1, h2, h3, .display {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .muted { color: var(--muted); }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+
+  /* ---------- Ticker tape (signature element) ---------- */
+  .tape-wrap {
+    background: #060b12;
+    border-bottom: 1px solid var(--hairline);
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  .tape-wrap::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, #060b12 0%, transparent 4%, transparent 96%, #060b12 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .tape {
+    display: inline-flex;
+    gap: 2.5rem;
+    padding-left: 100%;
+    animation: scroll-tape 30s linear infinite;
+  }
+  .tape:hover { animation-play-state: paused; }
+  @keyframes scroll-tape {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+  .tape-item {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--paper);
+    cursor: pointer;
+  }
+  .tape-item b { color: var(--amber); margin-right: 0.4em; }
+  @media (prefers-reduced-motion: reduce) {
+    .tape { animation: none; }
+  }
+
+  /* ---------- Shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 240px 1fr 340px;
+    height: calc(100vh - 40px);
+  }
+  @media (max-width: 980px) {
+    .shell { grid-template-columns: 1fr; height: auto; }
+    .rail, .side { border: none !important; }
+  }
+
+  .rail {
+    border-right: 1px solid var(--hairline);
+    padding: 1.25rem 1rem;
+    overflow-y: auto;
+  }
+  .rail .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--amber-dim);
+    margin-bottom: 0.75rem;
+  }
+  .watch-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0.4rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .watch-row:hover { border-color: var(--hairline); background: var(--ink-panel); }
+  .watch-row.active { border-color: var(--amber-dim); background: var(--ink-panel); }
+  .watch-row .sym { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .watch-row .px { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; }
+  .watch-row .rm { color: var(--muted); opacity: 0; font-size: 0.75rem; }
+  .watch-row:hover .rm { opacity: 1; }
+  .watch-row .rm:hover { color: var(--down); }
+
+  .add-form {
+    display: flex; gap: 0.4rem; margin-top: 1rem;
+  }
+  .add-form input {
+    flex: 1; min-width: 0;
+  }
+
+  main.workspace {
+    padding: 1.5rem 1.75rem;
+    overflow-y: auto;
+  }
+
+  .quote-header {
+    display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--hairline); margin-bottom: 1.25rem;
+  }
+  .quote-header .price { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; }
+  .quote-header .chg { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; }
+
+  .card {
+    background: var(--ink-panel);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.1rem;
+  }
+  .card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.7rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card h3 .eyebrow-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  svg.spark { width: 100%; height: 90px; display: block; }
+  svg.spark path.line { fill: none; stroke: var(--amber); stroke-width: 1.5; }
+  svg.spark path.fill { fill: url(#sparkGradient); stroke: none; }
+
+  .news-item, .note-item, .report-item {
+    padding: 0.6rem 0; border-bottom: 1px solid var(--hairline);
+  }
+  .news-item:last-child, .note-item:last-child, .report-item:last-child { border-bottom: none; }
+  .news-item .headline { font-size: 0.9rem; }
+  .news-item a { color: var(--paper); text-decoration: none; }
+  .news-item a:hover { color: var(--amber); }
+  .sentiment-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    padding: 0.1em 0.5em;
+    border-radius: 2px;
+    border: 1px solid var(--hairline);
+    margin-right: 0.5em;
+  }
+  .sentiment-positive { color: var(--up); border-color: var(--up); }
+  .sentiment-negative { color: var(--down); border-color: var(--down); }
+
+  input, textarea, button, select {
+    font-family: 'Inter', sans-serif;
+    background: var(--ink);
+    border: 1px solid var(--hairline);
+    color: var(--paper);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  input:focus, textarea:focus, button:focus, select:focus {
+    outline: 2px solid var(--amber);
+    outline-offset: 1px;
+  }
+  textarea { width: 100%; resize: vertical; min-height: 4.5rem; font-family: 'Inter', sans-serif; }
+  button {
+    background: var(--amber);
+    color: var(--ink);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: #e8b658; }
+  button.ghost {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid var(--hairline);
+    font-weight: 500;
+  }
+  button.ghost:hover { border-color: var(--amber-dim); }
+
+  .side {
+    border-left: 1px solid var(--hairline);
+    padding: 1.25rem 1.1rem;
+    overflow-y: auto;
+  }
+  .tabs {
+    display: flex; gap: 0.25rem; margin-bottom: 1rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.5rem 0.6rem;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .chat-log { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.8rem; max-height: 320px; overflow-y: auto; }
+  .chat-msg { padding: 0.5rem 0.65rem; border-radius: var(--radius); font-size: 0.85rem; line-height: 1.4; }
+  .chat-msg.user { background: var(--ink); border: 1px solid var(--hairline); align-self: flex-end; max-width: 90%; }
+  .chat-msg.agent { background: var(--ink-panel); border: 1px solid var(--amber-dim); }
+
+  .empty-state {
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 0.8rem 0;
+  }
+  .notable-flag { border-left: 3px solid var(--amber); padding-left: 0.6rem; margin-bottom: 0.5rem; }
+
+  .search-hit { padding: 0.5rem 0; border-bottom: 1px solid var(--hairline); font-size: 0.85rem; }
+  .search-hit .sim { color: var(--amber); font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; }
+</style>
+</head>
+<body>
+
+<div class="tape-wrap">
+  <div class="tape" id="tickerTape">
+    <span class="tape-item muted">loading watchlist&hellip;</span>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- LEFT: watchlist rail -->
+  <aside class="rail">
+    <div class="eyebrow">Watchlist</div>
+    <div id="watchlistRail"></div>
+    <form class="add-form" id="addForm">
+      <input type="text" id="addSymbolInput" placeholder="AAPL" maxlength="10" autocomplete="off" />
+      <button type="submit">Add</button>
+    </form>
+    <div style="margin-top:1.5rem;">
+      <div class="eyebrow">Semantic search</div>
+      <textarea id="searchQuery" placeholder="e.g. companies exposed to rising rates in regional banking" style="min-height:3.2rem;"></textarea>
+      <button class="ghost" id="searchBtn" style="margin-top:0.5rem; width:100%;">Search news</button>
+      <div id="searchResults"></div>
+    </div>
+  </aside>
+
+  <!-- CENTER: workspace -->
+  <main class="workspace" id="workspace">
+    <div class="empty-state">Pick a ticker from your watchlist, or add one, to open its workspace.</div>
+  </main>
+
+  <!-- RIGHT: notes / reports / since-last-visit / ask -->
+  <aside class="side">
+    <div class="tabs">
+      <div class="tab active" data-tab="notes">Notes</div>
+      <div class="tab" data-tab="reports">Reports</div>
+      <div class="tab" data-tab="changes">Since last visit</div>
+      {% if agent_enabled %}<div class="tab" data-tab="ask">Ask</div>{% endif %}
+    </div>
+
+    <div class="tab-panel active" id="tab-notes">
+      <div id="notesList" class="empty-state">Select a ticker to see its notes.</div>
+      <textarea id="noteInput" placeholder="Jot a research note for the selected ticker&hellip;"></textarea>
+      <button id="saveNoteBtn" style="margin-top:0.5rem; width:100%;">Save note</button>
+    </div>
+
+    <div class="tab-panel" id="tab-reports">
+      <div id="reportsList" class="empty-state">Select a ticker to see its reports.</div>
+      <input type="text" id="reportThesis" placeholder="One-line thesis" style="width:100%; margin-top:0.6rem;" />
+      <textarea id="reportSummary" placeholder="Report summary&hellip;" style="margin-top:0.5rem;"></textarea>
+      <button id="saveReportBtn" style="margin-top:0.5rem; width:100%;">Save report</button>
+    </div>
+
+    <div class="tab-panel" id="tab-changes">
+      <div id="changesList" class="empty-state">Loading&hellip;</div>
+      <button class="ghost" id="markVisitBtn" style="width:100%; margin-top:0.6rem;">Mark all as seen</button>
+    </div>
+
+    {% if agent_enabled %}
+    <div class="tab-panel" id="tab-ask">
+      <div class="chat-log" id="chatLog"></div>
+      <div style="display:flex; gap:0.4rem;">
+        <input type="text" id="chatInput" placeholder="Ask the research agent&hellip;" style="flex:1;" />
+        <button id="chatSendBtn">Send</button>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+
+<script>
+const state = { watchlist: [], selected: null };
+
+async function api(path, opts) {
+  const res = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts || {}));
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || res.statusText);
+  }
+  return res.json();
+}
+
+function fmtPrice(p) { return p == null ? '—' : Number(p).toFixed(2); }
+function fmtPct(p) { return p == null ? '—' : (p >= 0 ? '+' : '') + Number(p).toFixed(2) + '%'; }
+function pctClass(p) { return p == null ? '' : (p >= 0 ? 'up' : 'down'); }
+
+// ---------------- Watchlist + ticker tape ----------------
+
+async function loadWatchlist() {
+  state.watchlist = await api('/api/watchlist');
+  renderRail();
+  renderTape();
+}
+
+function renderTape() {
+  const tape = document.getElementById('tickerTape');
+  if (!state.watchlist.length) {
+    tape.innerHTML = '<span class="tape-item muted">Add a ticker to start your tape&hellip;</span>';
+    return;
+  }
+  const items = state.watchlist.concat(state.watchlist); // loop for seamless scroll
+  tape.innerHTML = items.map(w => `
+    <span class="tape-item" onclick="selectSymbol('${w.symbol}')">
+      <b>${w.symbol}</b><span class="mono ${pctClass(w.latest_price)}">${fmtPrice(w.latest_price)}</span>
+    </span>`).join('');
+}
+
+function renderRail() {
+  const rail = document.getElementById('watchlistRail');
+  if (!state.watchlist.length) {
+    rail.innerHTML = '<div class="empty-state">Nothing tracked yet.</div>';
+    return;
+  }
+  rail.innerHTML = state.watchlist.map(w => `
+    <div class="watch-row ${state.selected === w.symbol ? 'active' : ''}" onclick="selectSymbol('${w.symbol}')">
+      <span class="sym">${w.symbol}</span>
+      <span class="px">${fmtPrice(w.latest_price)} <span class="rm" onclick="event.stopPropagation(); removeSymbol('${w.symbol}')">&times;</span></span>
+    </div>`).join('');
+}
+
+document.getElementById('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('addSymbolInput');
+  const symbol = input.value.trim().toUpperCase();
+  if (!symbol) return;
+  input.value = '';
+  try {
+    await api('/api/watchlist', { method: 'POST', body: JSON.stringify({ symbol }) });
+    await loadWatchlist();
+    selectSymbol(symbol);
+  } catch (err) { alert('Could not add ' + symbol + ': ' + err.message); }
+});
+
+async function removeSymbol(symbol) {
+  await api('/api/watchlist/' + symbol, { method: 'DELETE' });
+  if (state.selected === symbol) {
+    state.selected = null;
+    document.getElementById('workspace').innerHTML = '<div class="empty-state">Pick a ticker from your watchlist, or add one, to open its workspace.</div>';
+  }
+  await loadWatchlist();
+}
+
+// ---------------- Ticker workspace ----------------
+
+async function selectSymbol(symbol) {
+  state.selected = symbol;
+  renderRail();
+  const ws = document.getElementById('workspace');
+  ws.innerHTML = '<div class="empty-state">Loading ' + symbol + '&hellip;</div>';
+
+  const [quote, history, fundamentals, news] = await Promise.all([
+    api('/api/quote/' + symbol).catch(e => ({ error: e.message })),
+    api('/api/price-history/' + symbol + '?days=60').catch(() => ({ history: [] })),
+    api('/api/fundamentals/' + symbol).catch(() => ({})),
+    api('/api/news/' + symbol + '?limit=8').catch(() => ({ news: [] })),
+  ]);
+
+  ws.innerHTML = `
+    <div class="quote-header">
+      <h1 class="display mono">${symbol}</h1>
+      ${quote.error ? `<span class="muted">${quote.error}</span>` : `
+        <span class="price mono">$${fmtPrice(quote.price)}</span>
+        <span class="chg mono ${pctClass(quote.change_percent)}">${fmtPct(quote.change_percent)}</span>
+        <span class="muted mono" style="font-size:0.75rem;">as of ${quote.as_of || '—'}</span>
+      `}
+    </div>
+
+    <div class="card">
+      <h3>Price history <span class="eyebrow-tag">last 60d, from Lakebase</span></h3>
+      ${renderSparkline(history.history || [])}
+    </div>
+
+    <div class="card">
+      <h3>Fundamentals</h3>
+      ${renderFundamentals(fundamentals)}
+    </div>
+
+    <div class="card">
+      <h3>Recent news <span class="eyebrow-tag">${(news.news || []).length} articles</span></h3>
+      ${renderNews(news.news || [])}
+    </div>
+  `;
+
+  loadNotes(symbol);
+  loadReports(symbol);
+}
+
+function renderSparkline(history) {
+  if (!history.length) return '<div class="empty-state">No price history yet — the Spark pipeline appends a snapshot each run, so history builds up over time.</div>';
+  const prices = history.map(h => Number(h.price));
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = (max - min) || 1;
+  const w = 600, h = 80;
+  const pts = prices.map((p, i) => {
+    const x = (i / (prices.length - 1 || 1)) * w;
+    const y = h - ((p - min) / range) * h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const linePath = 'M' + pts.join(' L');
+  const fillPath = linePath + ` L${w},${h} L0,${h} Z`;
+  return `
+    <svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d9a441" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#d9a441" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path class="fill" d="${fillPath}"></path>
+      <path class="line" d="${linePath}"></path>
+    </svg>
+    <div class="muted mono" style="font-size:0.7rem; display:flex; justify-content:space-between;">
+      <span>${min.toFixed(2)}</span><span>${prices.length} snapshots</span><span>${max.toFixed(2)}</span>
+    </div>`;
+}
+
+function renderFundamentals(f) {
+  if (!f || !f.name) return '<div class="empty-state">Not synced yet — the Spark pipeline populates this on its next run.</div>';
+  return `
+    <div style="font-size:0.9rem; line-height:1.6;">
+      <div><strong>${f.name}</strong> ${f.exchange ? `<span class="muted">(${f.exchange})</span>` : ''}</div>
+      <div class="muted">${[f.sector, f.industry].filter(Boolean).join(' · ')}</div>
+      ${f.market_cap ? `<div class="mono">Market cap: ${Number(f.market_cap).toLocaleString()}</div>` : ''}
+      ${f.description ? `<div class="muted" style="margin-top:0.5rem; font-size:0.82rem;">${f.description.slice(0, 320)}${f.description.length > 320 ? '…' : ''}</div>` : ''}
+    </div>`;
+}
+
+function renderNews(items) {
+  if (!items.length) return '<div class="empty-state">No synced articles yet.</div>';
+  return items.map(n => `
+    <div class="news-item">
+      ${n.sentiment ? `<span class="sentiment-tag sentiment-${n.sentiment}">${n.sentiment}</span>` : ''}
+      <div class="headline"><a href="${n.article_url || '#'}" target="_blank" rel="noopener">${n.title}</a></div>
+      <div class="muted mono" style="font-size:0.7rem;">${n.publisher_name || ''} ${n.published_utc ? '· ' + n.published_utc : ''}</div>
+    </div>`).join('');
+}
+
+// ---------------- Notes / Reports ----------------
+
+async function loadNotes(symbol) {
+  const notes = await api('/api/notes?symbol=' + symbol).catch(() => []);
+  const el = document.getElementById('notesList');
+  el.innerHTML = notes.length
+    ? notes.map(n => `<div class="note-item"><div>${n.note_text}</div><div class="muted mono" style="font-size:0.7rem;">${n.created_at}</div></div>`).join('')
+    : '<div class="empty-state">No notes yet for ' + symbol + '.</div>';
+}
+
+document.getElementById('saveNoteBtn').addEventListener('click', async () => {
+  if (!state.selected) return alert('Select a ticker first.');
+  const noteInput = document.getElementById('noteInput');
+  if (!noteInput.value.trim()) return;
+  await api('/api/notes', { method: 'POST', body: JSON.stringify({ symbol: state.selected, note_text: noteInput.value }) });
+  noteInput.value = '';
+  loadNotes(state.selected);
+});
+
+async function loadReports(symbol) {
+  const reports = await api('/api/reports?symbol=' + symbol).catch(() => []);
+  const el = document.getElementById('reportsList');
+  el.innerHTML = reports.length
+    ? reports.map(r => `<div class="report-item">${r.thesis ? `<div class="mono" style="color:var(--amber); font-size:0.8rem;">${r.thesis}</div>` : ''}<div>${r.summary}</div><div class="muted mono" style="font-size:0.7rem;">${r.created_at}</div></div>`).join('')
+    : '<div class="empty-state">No reports yet for ' + symbol + '.</div>';
+}
+
+document.getElementById('saveReportBtn').addEventListener('click', async () => {
+  if (!state.selected) return alert('Select a ticker first.');
+  const summary = document.getElementById('reportSummary');
+  const thesis = document.getElementById('reportThesis');
+  if (!summary.value.trim()) return;
+  await api('/api/reports', { method: 'POST', body: JSON.stringify({ symbol: state.selected, summary: summary.value, thesis: thesis.value }) });
+  summary.value = ''; thesis.value = '';
+  loadReports(state.selected);
+});
+
+// ---------------- Since last visit ----------------
+
+async function loadChanges() {
+  const el = document.getElementById('changesList');
+  try {
+    const data = await api('/api/notable-changes');
+    if (!data.price_moves?.length && !data.news?.length) {
+      el.innerHTML = `<div class="empty-state">${data.note || 'Nothing notable since your last visit.'}</div>`;
+      return;
+    }
+    let html = '';
+    (data.price_moves || []).forEach(m => {
+      html += `<div class="notable-flag mono" style="font-size:0.82rem;">${m.symbol} moved <span class="${pctClass(m.change_percent)}">${fmtPct(m.change_percent)}</span></div>`;
+    });
+    (data.news || []).forEach(n => {
+      html += `<div class="notable-flag" style="font-size:0.82rem;"><b class="mono">${n.ticker}</b> — <a href="${n.article_url}" target="_blank" style="color:var(--paper);">${n.title}</a></div>`;
+    });
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<div class="empty-state">' + e.message + '</div>';
+  }
+}
+
+document.getElementById('markVisitBtn').addEventListener('click', async () => {
+  await api('/api/mark-visit', { method: 'POST' });
+  loadChanges();
+});
+
+// ---------------- Semantic search ----------------
+
+document.getElementById('searchBtn').addEventListener('click', async () => {
+  const query = document.getElementById('searchQuery').value.trim();
+  if (!query) return;
+  const results = document.getElementById('searchResults');
+  results.innerHTML = '<div class="empty-state">Searching&hellip;</div>';
+  try {
+    const data = await api('/api/search', { method: 'POST', body: JSON.stringify({ query, limit: 6 }) });
+    const docs = data.documents || [];
+    results.innerHTML = docs.length
+      ? docs.map(d => `<div class="search-hit"><div class="sim">${(d.similarity * 100).toFixed(0)}% match · ${d.ticker}</div><a href="${d.article_url}" target="_blank" style="color:var(--paper);">${d.title}</a></div>`).join('')
+      : '<div class="empty-state">No matches yet.</div>';
+  } catch (e) {
+    results.innerHTML = '<div class="empty-state">' + e.message + '</div>';
+  }
+});
+
+// ---------------- Tabs ----------------
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------------- Chat (optional, if agent endpoint configured) ----------------
+
+const chatSendBtn = document.getElementById('chatSendBtn');
+if (chatSendBtn) {
+  chatSendBtn.addEventListener('click', sendChat);
+  document.getElementById('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  const log = document.getElementById('chatLog');
+  log.innerHTML += `<div class="chat-msg user">${message}</div>`;
+  log.scrollTop = log.scrollHeight;
+  try {
+    const data = await api('/api/ask', { method: 'POST', body: JSON.stringify({ message }) });
+    log.innerHTML += `<div class="chat-msg agent">${data.reply || data.error}</div>`;
+  } catch (e) {
+    log.innerHTML += `<div class="chat-msg agent">${e.message}</div>`;
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+// ---------------- Boot ----------------
+
+loadWatchlist();
+loadChanges();
+</script>
+</body>
+</html>
