@@ -1,0 +1,44 @@
+# --- Secrets / local env (never commit real values) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.Python
+build/
+dist/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Databricks CLI / Asset Bundles ---
+.databricks/
+.databricks-login.json
+databricks.yml.bak
+*.dbc
+
+# --- Model cache (downloaded, not source) ---
+.cache/
+**/huggingface/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# --- Logs / local scratch ---
+*.log
+.ipynb_checkpoints/
