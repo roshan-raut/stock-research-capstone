@@ -41,8 +41,8 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install dependencies
-# MAGIC %pip install -q "databricks-sdk>=0.30.0" psycopg2-binary sentence-transformers trafilatura requests
-dbutils.library.restartPython()
+# MAGIC %pip install -q "databricks-sdk>=0.30.0" "psycopg[binary]" sentence-transformers trafilatura requests
+# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -122,13 +122,22 @@ db_name = parsed.path.lstrip("/")
 db_user = parsed.username
 db_password = parsed.password
 
-# Spark's JDBC data source needs a jdbc:// URL + a properties dict (not the
-# postgresql:// URL psycopg2 uses) - same credentials, different format.
+# For serverless compute, use individual connection options (host, port, database, user, password)
+# instead of url + driver. JDBC_URL kept for backward compat with JDBC reads.
 JDBC_URL = f"jdbc:postgresql://{db_host}:{db_port}/{db_name}?sslmode=require"
 JDBC_PROPERTIES = {
     "user": db_user,
     "password": db_password,
     "driver": "org.postgresql.Driver",
+}
+
+# Serverless-compatible write options (no url, no driver)
+PG_WRITE_OPTIONS = {
+    "host": db_host,
+    "port": str(db_port),
+    "database": db_name,
+    "user": db_user,
+    "password": db_password,
 }
 
 print(f"Lakebase: {db_host}:{db_port}/{db_name} (JDBC + psycopg2 both configured)")
@@ -143,7 +152,7 @@ import psycopg2
 
 @contextmanager
 def pg_connect():
-    """psycopg2's own `with conn:` only commits/rolls back the transaction -
+    """psycopg's own `with conn:` only commits/rolls back the transaction -
     it does NOT close the connection. Use this instead so every merge step
     below actually releases its socket when done."""
     conn = psycopg2.connect(
@@ -420,10 +429,9 @@ if quote_rows:
     )
 
     (
-        price_df.write.format("jdbc")
-        .option("url", JDBC_URL)
+        price_df.write.format("postgresql")
         .option("dbtable", PRICE_SNAPSHOTS_TABLE)
-        .options(**JDBC_PROPERTIES)
+        .options(**PG_WRITE_OPTIONS)
         .mode("append")
         .save()
     )
@@ -451,10 +459,9 @@ if company_rows:
             _cur.execute(f"TRUNCATE TABLE {STAGING_TABLE}")
 
     (
-        company_df.write.format("jdbc")
-        .option("url", JDBC_URL)
+        company_df.write.format("postgresql")
         .option("dbtable", STAGING_TABLE)
-        .options(**JDBC_PROPERTIES)
+        .options(**PG_WRITE_OPTIONS)
         .mode("append")
         .save()
     )
@@ -560,10 +567,9 @@ if news_rows:
             _cur.execute(f"TRUNCATE TABLE {NEWS_STAGING_TABLE}")
 
     (
-        flattened_df.write.format("jdbc")
-        .option("url", JDBC_URL)
+        flattened_df.write.format("postgresql")
         .option("dbtable", NEWS_STAGING_TABLE)
-        .options(**JDBC_PROPERTIES)
+        .options(**PG_WRITE_OPTIONS)
         .mode("append")
         .save()
     )
@@ -675,10 +681,9 @@ if new_docs_count > 0:
             _cur.execute(f"TRUNCATE TABLE {EMBEDDINGS_STAGING_TABLE}")
 
     (
-        embedded_docs_df.write.format("jdbc")
-        .option("url", JDBC_URL)
+        embedded_docs_df.write.format("postgresql")
         .option("dbtable", EMBEDDINGS_STAGING_TABLE)
-        .options(**JDBC_PROPERTIES)
+        .options(**PG_WRITE_OPTIONS)
         .mode("append")
         .save()
     )
@@ -824,10 +829,9 @@ if fetched_bodies:
             _cur.execute(f"TRUNCATE TABLE {CHUNK_STAGING_TABLE}")
 
     (
-        chunks_df.write.format("jdbc")
-        .option("url", JDBC_URL)
+        chunks_df.write.format("postgresql")
         .option("dbtable", CHUNK_STAGING_TABLE)
-        .options(**JDBC_PROPERTIES)
+        .options(**PG_WRITE_OPTIONS)
         .mode("append")
         .save()
     )
