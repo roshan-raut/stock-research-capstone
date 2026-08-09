@@ -1,0 +1,18 @@
+bundle:
+  name: stock-research-capstone
+
+# Replace <your-workspace-instance> with your real workspace URL, e.g.
+# https://dbc-xxxxxxxx-xxxx.cloud.databricks.com
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://<your-workspace-instance>
+
+resources:
+  jobs:
+    market_data_pipeline_job:
+      name: market_data_pipeline_job
+
+include:
+  - resources/*.yml
